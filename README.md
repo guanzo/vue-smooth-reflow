@@ -14,7 +14,7 @@ Note that this library has no overlap with Vue's built in `<transition>` compone
 
 ## Demo
 
-https://jsfiddle.net/axfwg1L0/94/
+https://vuesmoothreflow.guanzo.io
 
 ## Installation
 

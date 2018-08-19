@@ -35,12 +35,13 @@ const mixin = {
             smoothEl.setBeforeValues()
         }
     },
-    async updated() {
-        await this.$nextTick()
-        for (let smoothEl of this._smoothElements) {
-            smoothEl.doSmoothReflow()
-        }
-        flushRemoved(this)
+    updated() {
+        this.$nextTick(() => {
+            for (let smoothEl of this._smoothElements) {
+                smoothEl.doSmoothReflow()
+            }
+            flushRemoved(this)
+        })
     }
 }
 
