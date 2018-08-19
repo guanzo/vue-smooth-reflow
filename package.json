@@ -1,0 +1,40 @@
+{
+  "name": "vue-smooth-reflow",
+  "version": "0.1.0",
+  "description": "Transition reflow in response to vue data changes.",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack",
+    "prepublish": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guanzo/vue-smooth-reflow.git"
+  },
+  "peerDependencies": {
+    "vue": ">=2.x.x"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0-beta.49",
+    "@babel/preset-env": "^7.0.0-beta.49",
+    "babel-loader": "^8.0.0-beta.3",
+    "uglifyjs-webpack-plugin": "^1.2.5",
+    "webpack": "^4.10.1",
+    "webpack-cli": "^2.1.4",
+    "webpack-merge": "^4.1.2"
+  },
+  "unpkg": "dist/vue-smooth-reflow.min.js",
+  "keywords": [
+    "vue",
+    "vuejs",
+    "transition",
+    "height",
+    "auto"
+  ],
+  "author": "guanzo guanzo91@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/guanzo/vue-smooth-reflow/issues"
+  },
+  "homepage": "https://github.com/guanzo/vue-smooth-reflow#readme"
+}
