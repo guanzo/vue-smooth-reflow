@@ -121,7 +121,6 @@ class SmoothElement {
             state: STATES.INACTIVE,
             isRemoved: false
         }
-        console.log(options)
         Object.assign(this, { options }, internal)
 
         this.endListener = this.endListener.bind(this)
