@@ -16,6 +16,8 @@ Note that this library has no overlap with Vue's built in `<transition>` compone
 
 https://vuesmoothreflow.guanzo.io
 
+If you want to see how the examples were configured, the demo source is here: [github](https://github.com/guanzo/vue-smooth-reflow-demo)
+
 ## Installation
 
 Download via npm:
@@ -79,7 +81,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
     Default: The components root element.
 
-    A reference to the element, or a CSS selector string. The resolved element will transition reflows on registered properties. This element is referred to as the "smooth element".
+    An element reference, or a CSS selector string. The resolved element will transition reflows on registered properties. This element is referred to as the "smooth element".
 
     Use a selector string if the element is not rendered initially. If the selector returns multiple elements, the first one will be used.
 
@@ -121,9 +123,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
     The default value will become `height .5s, transform .5s`.
 
-    Existing stylesheet transitions on other properties will be preserved.
-
-    Existing inline style transitions will be overridden.
+    If the smooth element has transitions on other properties like `background-color`, they will be preserved. Any transitions defined as an inline style on the smooth element will be ignored and erased, so be careful.
 
 * `transitionEvent`
 
