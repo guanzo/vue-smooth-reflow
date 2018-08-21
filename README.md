@@ -245,7 +245,7 @@ mounted(){
 
 * VSR will no longer check for existing transition values for registered properties. It will only use the value of the `transition` option.
 
-* The `hideOverflow` now defaults to `true`.
+* The `hideOverflow` option now defaults to `true`.
 
 * The way child transitions are handled is completely different.
 

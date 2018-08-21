@@ -3,11 +3,13 @@
         "ecmaVersion": 8,
         "sourceType": "module",
         "ecmaFeatures": {
-            "experimentalObjectRestSpread": true
+            "experimentalObjectRestSpread": false
         }
     },
     "env": {
-        "browser": true
+        "browser": true,
+        "es6": true,
+        "node": true
     },
     "extends": ["eslint:recommended"],
     "rules": {

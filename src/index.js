@@ -1,3 +1,15 @@
+/**
+ * Don't use async/await or spread/rest.
+ *
+ * The general flow is:
+ *
+ * 1. Save element DOM state in beforeUpdate()
+ * 2. Get element DOM state in updated()
+ * 3. Animate the diff in doSmoothReflow()
+ * 4. Listen for transitionend event in endListener().
+ * 5. If the event matches the user's event filters, Go back to #1
+ */
+
 const mixin = {
     methods: {
         $smoothReflow(options) {
@@ -92,7 +104,7 @@ class SmoothElement {
     constructor(userOptions, $componentEl) {
         let options = {
             // Element or selector string.
-            // By default it is the $componentEl
+            // By default it is the component's root el.
             el: $componentEl,
             // Valid values: height, width, transform
             property: 'height',
@@ -100,11 +112,12 @@ class SmoothElement {
             // Note that you can specify multiple transitionend
             // event emitters through the use of commas.
             transitionEvent: null,
-            // Hide scrollbar during transition.
+            // Hide scrollbar during transition. This should be on 99% of the time.
             hideOverflow: true,
             debug: false,
-            ...userOptions
         }
+        Object.assign(options, userOptions)
+
         let properties = this.parsePropertyOption(options.property)
         if (!options.transition) {
             options.transition = properties.map(p => `${p} .5s`).join(',')
@@ -117,28 +130,24 @@ class SmoothElement {
             // Resolved properties from property
             properties,
             beforeRect: {},
-            afterRect: {},
             state: STATES.INACTIVE,
             isRemoved: false
         }
         Object.assign(this, { options }, internal)
 
         this.endListener = this.endListener.bind(this)
+        this.debug = this.debug.bind(this)
     }
     transitionTo(to) {
         this.state = to
-    } /**
-     *
-     * @param {String|Array} property
-     */
+    }
     parsePropertyOption(property) {
-        let properties = []
         if (typeof property === 'string') {
-            properties.push(property)
+            return [property]
         } else if (Array.isArray(property)) {
-            properties = property
+            return property
         }
-        return properties
+        return []
     }
     // Retrieve registered element on demand
     // El could have been hidden by v-if/v-show
@@ -149,21 +158,35 @@ class SmoothElement {
             return null
         }
         return select($componentEl, options.el)
-    } // Save the DOM properties of the $smoothEl
-    // before the data update
+    } // Save the DOM properties of the $smoothEl before the data update
     setBeforeValues() {
         let $smoothEl = this.findRegisteredEl()
 
-        // This property could be set by a previous update
-        // Reset it so it doesn't affect the current update
-        this.afterRect = {}
+        this.beforeRect = {}
 
-        let beforeRect = {}
-        if ($smoothEl) {
-            beforeRect = $smoothEl.getBoundingClientRect()
+        if (!$smoothEl){
+            return
         }
-        this.beforeRect = beforeRect
 
+        let computedStyle = window.getComputedStyle($smoothEl)
+        // getComputedStyle() can return null in iframe
+        let { transition, overflowX, overflowY } = computedStyle || {}
+        this.computedTransition = transition
+
+        // Margin collapse needs to be prevented when calculating beforeRect
+        // Setting overflow: 'hidden'|'auto' is just one way to prevent margin collapse
+        if (this.options.hideOverflow) {
+            //save overflow properties before overwriting
+            this.overflowX = overflowX
+            this.overflowY = overflowY
+
+            $smoothEl.style.overflowX = 'hidden'
+            $smoothEl.style.overflowY = 'hidden'
+        }
+
+        this.beforeRect = $smoothEl.getBoundingClientRect()
+
+        // Important to stopTransition after we've saved this.beforeRect
         if (this.state === STATES.ACTIVE) {
             this.stopTransition()
             this.debug('Transition was interrupted.')
@@ -185,7 +208,7 @@ class SmoothElement {
     doSmoothReflow(event = 'data update') {
         let $smoothEl = this.findRegisteredEl()
         if (!$smoothEl) {
-            this.debug("Could not find registered el.")
+            this.debug("Could not find registered el to perform doSmoothReflow.")
             this.transitionTo(STATES.INACTIVE)
             return
         }
@@ -193,38 +216,26 @@ class SmoothElement {
         if (this.state === STATES.ACTIVE) {
             return
         }
-        let { beforeRect, properties, options } = this
+        // TODO: This listener might be necessary if the smoothEl is not rendered inside the component
+        // for example if smoothEl is inside a <template></template>
+        // https://github.com/guanzo/vue-smooth-reflow/issues/1
+        //$smoothEl.addEventListener('transitionend', this.endListener, { passive: true })
+        let { beforeRect, properties, options, debug } = this
 
         this.$smoothEl = $smoothEl
         this.transitionTo(STATES.ACTIVE)
 
         let triggeredBy = (typeof event === 'string') ? event : event.target
-        this.debug(`Reflow triggered by:`, triggeredBy)
+        debug(`doSmoothReflow triggered by:`, triggeredBy)
 
         let afterRect = $smoothEl.getBoundingClientRect()
-        this.afterRect = afterRect
-
         if (!this.didValuesChange(beforeRect, afterRect)) {
-            this.debug(`Property values did not change.`)
+            debug(`Property values did not change.`)
             this.transitionTo(STATES.INACTIVE)
             return
         }
-        this.debug('beforeRect', beforeRect)
-        this.debug('afterRect', afterRect)
-
-        let computedStyle = window.getComputedStyle($smoothEl)
-
-        if (options.hideOverflow) {
-            //save overflow properties before overwriting
-            let overflowY = computedStyle.overflowY,
-                overflowX = computedStyle.overflowX
-
-            this.overflowX = overflowX
-            this.overflowY = overflowY
-
-            $smoothEl.style.overflowX = 'hidden'
-            $smoothEl.style.overflowY = 'hidden'
-        }
+        debug('beforeRect', beforeRect)
+        debug('afterRect', afterRect)
 
         for (let prop of properties) {
             if (prop === 'transform') {
@@ -238,7 +249,7 @@ class SmoothElement {
 
         $smoothEl.offsetHeight // Force reflow
 
-        let t = [computedStyle.transition, options.transition].filter(d=>d).join(',')
+        let t = [this.computedTransition, options.transition].filter(d=>d).join(',')
         $smoothEl.style.transition = t
 
         for (let prop of properties) {
@@ -267,8 +278,7 @@ class SmoothElement {
         else if (this.isRegisteredEventEmitter($smoothEl, event)) {
             this.doSmoothReflow(event)
         }
-    } // Check if we should perform doSmoothReflow()
-    // after a transitionend event.
+    } // Check if we should perform doSmoothReflow() after a transitionend event.
     isRegisteredEventEmitter($smoothEl, event) {
         let $targetEl = event.target
         let { transitionEvent } = this.options
@@ -328,11 +338,12 @@ class SmoothElement {
     scheduleRemoval() {
         this.isRemoved = true
     }
-    debug(...obj) {
+    debug() {
         if (!this.options.debug) {
             return
         }
-        console.log(`VSR_DEBUG:`, ...obj)
+        let args = [`VSR_DEBUG:`].concat(Array.from(arguments))
+        console.log.apply(null, args)
     }
 }
 
