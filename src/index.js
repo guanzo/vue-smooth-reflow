@@ -29,6 +29,7 @@ const mixin = {
     },
     beforeCreate() {
         this._smoothElements = []
+
         this._endListener = event => {
             for (let smoothEl of this._smoothElements) {
                 smoothEl.endListener(event)
@@ -39,15 +40,19 @@ const mixin = {
         this.$el.addEventListener('transitionend', this._endListener, { passive: true })
     },
     destroyed() {
-        this.$el.removeEventListener('transitionend', this._endListener)
+        this.$el.removeEventListener('transitionend', this._endListener, { passive: true })
     },
     beforeUpdate() {
+        // The component $el can be null during mounted, if it's hidden by a falsy v-if
+        // Duplicate event listeners are ignored, so it's safe to add this listener multiple times.
+        this.$el.addEventListener('transitionend', this._endListener, { passive: true })
         flushRemoved(this)
         // Retrieve component element on demand
         // It could have been hidden by v-if/v-show
         for (let smoothEl of this._smoothElements) {
             let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
-            smoothEl.setBeforeValues($smoothEl)
+            smoothEl.setSmoothElement($smoothEl)
+            smoothEl.setBeforeValues()
         }
     },
     updated() {
@@ -56,7 +61,8 @@ const mixin = {
             // It could have been hidden by v-if/v-show
             for (let smoothEl of this._smoothElements) {
                 let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
-                smoothEl.doSmoothReflow($smoothEl)
+                smoothEl.setSmoothElement($smoothEl)
+                smoothEl.doSmoothReflow()
             }
             flushRemoved(this)
         })
@@ -160,6 +166,9 @@ class SmoothElement {
         this.endListener = this.endListener.bind(this)
         this.debug = this.debug.bind(this)
     }
+    setSmoothElement($smoothEl) {
+        this.$smoothEl = $smoothEl
+    }
     transitionTo(to) {
         this.state = to
     }
@@ -171,7 +180,8 @@ class SmoothElement {
         }
         return []
     } // Save the DOM properties of the $smoothEl before the data update
-    setBeforeValues($smoothEl) {
+    setBeforeValues() {
+        let { $smoothEl } = this
         this.beforeRect = {}
 
         if (!$smoothEl){
@@ -193,9 +203,8 @@ class SmoothElement {
             $smoothEl.style.overflowX = 'hidden'
             $smoothEl.style.overflowY = 'hidden'
         }
-
         // Save values AFTER hiding overflow to prevent margin collapse.
-        this.beforeRect = $smoothEl.getBoundingClientRect()
+        this.beforeRect = getBoundingClientRect($smoothEl)
 
         // Important to stopTransition after we've saved this.beforeRect
         if (this.state === STATES.ACTIVE) {
@@ -206,6 +215,10 @@ class SmoothElement {
     didValuesChange(beforeRect, afterRect) {
         let b = beforeRect
         let a = afterRect
+        // There's nothing to transition from.
+        if (Object.keys(beforeRect).length === 0) {
+            return false
+        }
         for (let prop of this.properties) {
             if (prop === 'transform' &&
                     (b['top'] !== a['top'] || b['left'] !== a['left'])) {
@@ -216,14 +229,13 @@ class SmoothElement {
         }
         return false
     }
-    doSmoothReflow($smoothEl, event = 'data update') {
+    doSmoothReflow(event = 'data update') {
+        let { $smoothEl } = this
         if (!$smoothEl) {
             this.debug("Could not find registered el to perform doSmoothReflow.")
             this.transitionTo(STATES.INACTIVE)
             return
         }
-        // Save $smoothEl reference for endListener()
-        this.$smoothEl = $smoothEl
         // A transition is already occurring, don't interrupt it.
         if (this.state === STATES.ACTIVE) {
             return
@@ -239,7 +251,7 @@ class SmoothElement {
         let triggeredBy = (typeof event === 'string') ? event : event.target
         debug(`doSmoothReflow triggered by:`, triggeredBy)
 
-        let afterRect = $smoothEl.getBoundingClientRect()
+        let afterRect = getBoundingClientRect($smoothEl)
         if (!this.didValuesChange(beforeRect, afterRect)) {
             debug(`Property values did not change.`)
             this.transitionTo(STATES.INACTIVE)
@@ -282,11 +294,11 @@ class SmoothElement {
                 // Record the height AFTER the data change, but potentially
                 // BEFORE any transitionend events.
                 // Useful for cases like transition mode="out-in"
-                this.setBeforeValues($smoothEl)
+                this.setBeforeValues()
             }
         }
         else if (this.isRegisteredEventEmitter($smoothEl, event)) {
-            this.doSmoothReflow($smoothEl, event)
+            this.doSmoothReflow(event)
         }
     } // Check if we should perform doSmoothReflow() after a transitionend event.
     isRegisteredEventEmitter($smoothEl, event) {
@@ -327,14 +339,12 @@ class SmoothElement {
         return true
     }
     stopTransition() {
-        let {
-            $smoothEl, options, overflowX, overflowY,
-            properties,
-        } = this
+        let { $smoothEl, options, overflowX, overflowY, properties } = this
         // Change prop back to auto
         for (let prop of properties) {
             $smoothEl.style[prop] = null
         }
+
         if (options.hideOverflow) {
             // Restore original overflow properties
             $smoothEl.style.overflowX = overflowX
@@ -355,6 +365,12 @@ class SmoothElement {
         let args = [`VSR_DEBUG:`].concat(Array.from(arguments))
         console.log.apply(null, args)
     }
+}
+
+// Converts DOMRect into plain object.
+const getBoundingClientRect = $el => {
+    const { top, right, bottom, left, width, height, x, y } = $el.getBoundingClientRect()
+    return { top, right, bottom, left, width, height, x, y }
 }
 
 export default mixin

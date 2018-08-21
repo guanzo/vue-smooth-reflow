@@ -1,6 +1,6 @@
 {
   "name": "vue-smooth-reflow",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Transition reflow in response to vue data changes.",
   "scripts": {
     "build": "webpack",
@@ -35,5 +35,6 @@
   "bugs": {
     "url": "https://github.com/guanzo/vue-smooth-reflow/issues"
   },
-  "homepage": "https://github.com/guanzo/vue-smooth-reflow#readme"
+  "homepage": "https://github.com/guanzo/vue-smooth-reflow#readme",
+  "dependencies": {}
 }
