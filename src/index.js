@@ -43,14 +43,20 @@ const mixin = {
     },
     beforeUpdate() {
         flushRemoved(this)
+        // Retrieve component element on demand
+        // It could have been hidden by v-if/v-show
         for (let smoothEl of this._smoothElements) {
-            smoothEl.setBeforeValues()
+            let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
+            smoothEl.setBeforeValues($smoothEl)
         }
     },
     updated() {
         this.$nextTick(() => {
+            // Retrieve component element on demand
+            // It could have been hidden by v-if/v-show
             for (let smoothEl of this._smoothElements) {
-                smoothEl.doSmoothReflow()
+                let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
+                smoothEl.doSmoothReflow($smoothEl)
             }
             flushRemoved(this)
         })
@@ -70,16 +76,17 @@ function flushRemoved(vm) {
 
 // 'this' is vue component
 function registerElement(option = {}) {
-    this._smoothElements.push(new SmoothElement(option, this.$el))
+    this._smoothElements.push(new SmoothElement(option))
 }
 
 // 'this' is vue component
-function unregisterElement(option) {
+// If no 'el' was pass during registration, then we unregister the root element.
+function unregisterElement(option = defaultOptions()) {
     let root = this.$el
-    let index = this._smoothElements.findIndex(d => {
-        return select(root, d.options.el) === select(root, option.el)
+    let index = this._smoothElements.findIndex(smoothEl => {
+        return findRegisteredEl(root, smoothEl.options.el) === findRegisteredEl(root, option.el)
     })
-    if (index == -1) {
+    if (index === -1) {
         console.error("VSR_ERROR: $unsmoothReflow failed due to invalid el option")
         return
     }
@@ -88,9 +95,21 @@ function unregisterElement(option) {
     this._smoothElements[index].scheduleRemoval()
 }
 
-function select(rootEl, el) {
+function findRegisteredEl($root, registeredEl) {
+    // Is an element hidden by v-if
+    if (!$root || ($root instanceof Node && $root.nodeType === Node.COMMENT_NODE)) {
+        return null
+    }
+    // Fallback to component root el.
+    if (registeredEl === null) {
+        return $root
+    }
+    return select($root, registeredEl)
+}
+
+function select($root, el) {
     if (typeof el === 'string')
-        return rootEl.matches(el) ? rootEl : rootEl.querySelector(el)
+        return $root.matches(el) ? $root : $root.querySelector(el)
     else
         return el
 }
@@ -100,22 +119,26 @@ const STATES = {
     ACTIVE: 'ACTIVE'
 }
 
+const defaultOptions = () => {
+    return {
+        // Element or selector string.
+        // If null, VSR will use the component's root el.
+        el: null,
+        // Valid values: height, width, transform
+        property: 'height',
+        // Selector string that will emit a transitionend event.
+        // Note that you can specify multiple transitionend
+        // event emitters through the use of commas.
+        transitionEvent: null,
+        // Hide scrollbar during transition. This should be on 99% of the time.
+        hideOverflow: true,
+        debug: false,
+    }
+}
+
 class SmoothElement {
-    constructor(userOptions, $componentEl) {
-        let options = {
-            // Element or selector string.
-            // By default it is the component's root el.
-            el: $componentEl,
-            // Valid values: height, width, transform
-            property: 'height',
-            // Selector string that will emit a transitionend event.
-            // Note that you can specify multiple transitionend
-            // event emitters through the use of commas.
-            transitionEvent: null,
-            // Hide scrollbar during transition. This should be on 99% of the time.
-            hideOverflow: true,
-            debug: false,
-        }
+    constructor(userOptions) {
+        let options = defaultOptions()
         Object.assign(options, userOptions)
 
         let properties = this.parsePropertyOption(options.property)
@@ -124,7 +147,6 @@ class SmoothElement {
         }
 
         let internal = {
-            $componentEl,
             // Resolved Element from el
             $smoothEl: null,
             // Resolved properties from property
@@ -148,20 +170,8 @@ class SmoothElement {
             return property
         }
         return []
-    }
-    // Retrieve registered element on demand
-    // El could have been hidden by v-if/v-show
-    findRegisteredEl() {
-        let { $componentEl, options } = this
-        // $componentEl could be hidden by v-if
-        if (!$componentEl) {
-            return null
-        }
-        return select($componentEl, options.el)
     } // Save the DOM properties of the $smoothEl before the data update
-    setBeforeValues() {
-        let $smoothEl = this.findRegisteredEl()
-
+    setBeforeValues($smoothEl) {
         this.beforeRect = {}
 
         if (!$smoothEl){
@@ -184,6 +194,7 @@ class SmoothElement {
             $smoothEl.style.overflowY = 'hidden'
         }
 
+        // Save values AFTER hiding overflow to prevent margin collapse.
         this.beforeRect = $smoothEl.getBoundingClientRect()
 
         // Important to stopTransition after we've saved this.beforeRect
@@ -205,13 +216,14 @@ class SmoothElement {
         }
         return false
     }
-    doSmoothReflow(event = 'data update') {
-        let $smoothEl = this.findRegisteredEl()
+    doSmoothReflow($smoothEl, event = 'data update') {
         if (!$smoothEl) {
             this.debug("Could not find registered el to perform doSmoothReflow.")
             this.transitionTo(STATES.INACTIVE)
             return
         }
+        // Save $smoothEl reference for endListener()
+        this.$smoothEl = $smoothEl
         // A transition is already occurring, don't interrupt it.
         if (this.state === STATES.ACTIVE) {
             return
@@ -222,7 +234,6 @@ class SmoothElement {
         //$smoothEl.addEventListener('transitionend', this.endListener, { passive: true })
         let { beforeRect, properties, options, debug } = this
 
-        this.$smoothEl = $smoothEl
         this.transitionTo(STATES.ACTIVE)
 
         let triggeredBy = (typeof event === 'string') ? event : event.target
@@ -261,9 +272,8 @@ class SmoothElement {
         }
     }
     endListener(event) {
-        let { $smoothEl } = this
+        let { $smoothEl, properties } = this
         let $targetEl = event.target
-        let { properties } = this
         // Transition on smooth element finished
         if ($smoothEl === $targetEl) {
             // The transition property is one that was registered
@@ -272,11 +282,11 @@ class SmoothElement {
                 // Record the height AFTER the data change, but potentially
                 // BEFORE any transitionend events.
                 // Useful for cases like transition mode="out-in"
-                this.setBeforeValues()
+                this.setBeforeValues($smoothEl)
             }
         }
         else if (this.isRegisteredEventEmitter($smoothEl, event)) {
-            this.doSmoothReflow(event)
+            this.doSmoothReflow($smoothEl, event)
         }
     } // Check if we should perform doSmoothReflow() after a transitionend event.
     isRegisteredEventEmitter($smoothEl, event) {
@@ -295,8 +305,8 @@ class SmoothElement {
             return false
         }
 
-        // If the $smoothEl hasn't registered 'transform'
-        // then we don't need to act on transitionend
+        // If 'transform' isn't a registered property,
+        // then we don't need to act on any transitionend
         // events that occur outside the $smoothEl
         if (this.properties.indexOf('transform') === -1) {
             // Checks if $targetEl IS or WAS a descendent
