@@ -192,18 +192,10 @@ class SmoothElement {
         // getComputedStyle() can return null in iframe
         let { transition, overflowX, overflowY } = computedStyle || {}
         this.computedTransition = transition
+        // Save overflow values now
+        this.overflowX = overflowX
+        this.overflowY = overflowY
 
-        // Margin collapse needs to be prevented when calculating beforeRect
-        // Setting overflow: 'hidden'|'auto' is just one way to prevent margin collapse
-        if (this.options.hideOverflow) {
-            //save overflow properties before overwriting
-            this.overflowX = overflowX
-            this.overflowY = overflowY
-
-            $smoothEl.style.overflowX = 'hidden'
-            $smoothEl.style.overflowY = 'hidden'
-        }
-        // Save values AFTER hiding overflow to prevent margin collapse.
         this.beforeRect = getBoundingClientRect($smoothEl)
 
         // Important to stopTransition after we've saved this.beforeRect
@@ -244,7 +236,7 @@ class SmoothElement {
         // for example if smoothEl is inside a <template></template>
         // https://github.com/guanzo/vue-smooth-reflow/issues/1
         //$smoothEl.addEventListener('transitionend', this.endListener, { passive: true })
-        let { beforeRect, properties, options, debug } = this
+        let { beforeRect, properties, options, overflowX, overflowY, debug } = this
 
         this.transitionTo(STATES.ACTIVE)
 
@@ -259,6 +251,8 @@ class SmoothElement {
         }
         debug('beforeRect', beforeRect)
         debug('afterRect', afterRect)
+
+        this.saveOverflowValues($smoothEl, overflowX, overflowY)
 
         for (let prop of properties) {
             if (prop === 'transform') {
@@ -282,6 +276,8 @@ class SmoothElement {
                 $smoothEl.style[prop] = afterRect[prop] + 'px'
             }
         }
+
+        // Transition is now started.
     }
     endListener(event) {
         let { $smoothEl, properties } = this
@@ -291,23 +287,28 @@ class SmoothElement {
             // The transition property is one that was registered
             if (properties.includes(event.propertyName)) {
                 this.stopTransition()
-                // Record the height AFTER the data change, but potentially
+                // Record the beforeValues AFTER the data change, but potentially
                 // BEFORE any transitionend events.
-                // Useful for cases like transition mode="out-in"
-                this.setBeforeValues()
+                if (this.hasRegisteredEventEmitter()) {
+                    this.setBeforeValues()
+                }
             }
         }
         else if (this.isRegisteredEventEmitter($smoothEl, event)) {
             this.doSmoothReflow(event)
         }
-    } // Check if we should perform doSmoothReflow() after a transitionend event.
-    isRegisteredEventEmitter($smoothEl, event) {
-        let $targetEl = event.target
+    }
+    hasRegisteredEventEmitter() {
         let { transitionEvent } = this.options
-        if (transitionEvent === null || Object.keys(transitionEvent).length === 0) {
+        return transitionEvent !== null && Object.keys(transitionEvent).length > 0
+    }
+    // Check if we should perform doSmoothReflow() after a transitionend event.
+    isRegisteredEventEmitter($smoothEl, event) {
+        if (!this.hasRegisteredEventEmitter()) {
             return false
         }
-
+        let $targetEl = event.target
+        let { transitionEvent } = this.options
         let { selector, propertyName } = transitionEvent
         if (propertyName != null && propertyName !== event.propertyName) {
             return false
@@ -321,8 +322,7 @@ class SmoothElement {
         // then we don't need to act on any transitionend
         // events that occur outside the $smoothEl
         if (this.properties.indexOf('transform') === -1) {
-            // Checks if $targetEl IS or WAS a descendent
-            // of $smoothEl.
+            // Checks if $targetEl IS or WAS a descendent of $smoothEl.
             let smoothElContainsTarget = false
             // composedPath is missing in ie/edge of course.
             let path = event.composedPath ? event.composedPath() : []
@@ -338,18 +338,32 @@ class SmoothElement {
         }
         return true
     }
-    stopTransition() {
-        let { $smoothEl, options, overflowX, overflowY, properties } = this
-        // Change prop back to auto
-        for (let prop of properties) {
-            $smoothEl.style[prop] = null
-        }
+    saveOverflowValues($smoothEl, overflowX, overflowY) {
+        if (this.options.hideOverflow) {
+            //save overflow properties before overwriting
+            this.overflowX = overflowX
+            this.overflowY = overflowY
 
+            $smoothEl.style.overflowX = 'hidden'
+            $smoothEl.style.overflowY = 'hidden'
+        }
+    }
+    restoreOverflowValues($smoothEl) {
+        let { options, overflowX, overflowY } = this
         if (options.hideOverflow) {
             // Restore original overflow properties
             $smoothEl.style.overflowX = overflowX
             $smoothEl.style.overflowY = overflowY
         }
+    }
+    stopTransition() {
+        let { $smoothEl, properties } = this
+        // Change prop back to auto
+        for (let prop of properties) {
+            $smoothEl.style[prop] = null
+        }
+
+        this.restoreOverflowValues($smoothEl)
         // Clean up inline transition
         $smoothEl.style.transition = null
 
@@ -368,8 +382,12 @@ class SmoothElement {
 }
 
 // Converts DOMRect into plain object.
+// Overflow is temporarily forced to 'hidden' to prevent margin collapse,
+// and receive an accurate height/width value.
 const getBoundingClientRect = $el => {
+    $el.style.overflow = 'hidden'
     const { top, right, bottom, left, width, height, x, y } = $el.getBoundingClientRect()
+    $el.style.overflow = null
     return { top, right, bottom, left, width, height, x, y }
 }
 
