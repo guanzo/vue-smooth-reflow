@@ -9,7 +9,9 @@ const config = {
         filename: 'vue-smooth-reflow.min.js',
         library:'SmoothReflow',
         libraryTarget: 'umd',
-        libraryExport: 'default'
+        libraryExport: 'default',
+        // Workaround for webpack 4 umd bug (Ref: https://github.com/webpack/webpack/issues/6522)
+        globalObject: "typeof self !== 'undefined' ? self : this"
     },
     module: {
         rules: [

@@ -1,6 +1,4 @@
 /**
- * Don't use async/await or spread/rest.
- *
  * The general flow is:
  *
  * 1. Save element DOM state in beforeUpdate()
@@ -27,7 +25,7 @@ const mixin = {
                 _unregisterElement(options)
         },
     },
-    beforeCreate() {
+    beforeMount() {
         this._smoothElements = []
 
         this._endListener = event => {
@@ -266,8 +264,7 @@ class SmoothElement {
 
         $smoothEl.offsetHeight // Force reflow
 
-        let t = [this.computedTransition, options.transition].filter(d=>d).join(',')
-        $smoothEl.style.transition = t
+        $smoothEl.style.transition = [this.computedTransition, options.transition].filter(d=>d).join(',')
 
         for (let prop of properties) {
             if (prop === 'transform') {
@@ -308,8 +305,7 @@ class SmoothElement {
             return false
         }
         let $targetEl = event.target
-        let { transitionEvent } = this.options
-        let { selector, propertyName } = transitionEvent
+        let { selector, propertyName } = this.options.transitionEvent
         if (propertyName != null && propertyName !== event.propertyName) {
             return false
         }
