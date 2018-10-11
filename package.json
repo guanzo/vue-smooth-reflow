@@ -4,7 +4,8 @@
   "description": "Transition reflow in response to vue data changes.",
   "scripts": {
     "build": "webpack",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
