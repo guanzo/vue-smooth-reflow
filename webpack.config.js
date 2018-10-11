@@ -26,6 +26,7 @@ const config = {
                                 browsers: ['last 2 versions', 'safari >= 9', '> 1%', 'IE 11']       
                             }
                         }]],
+                        plugins: ["transform-class-properties", "transform-es2015-arrow-functions"],
                         babelrc: false
                     }
                 }

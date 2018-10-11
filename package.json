@@ -4,8 +4,7 @@
   "description": "Transition reflow in response to vue data changes.",
   "scripts": {
     "build": "webpack",
-    "prepublish": "npm run build",
-    "postinstall": "npm run build"
+    "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -21,7 +20,7 @@
     "webpack": "^4.10.1",
     "webpack-cli": "^2.1.4"
   },
-  "module": "src/index.js",
+  "module": "dist/vue-smooth-reflow.min.js",
   "main": "dist/vue-smooth-reflow.min.js",
   "unpkg": "dist/vue-smooth-reflow.min.js",
   "keywords": [
