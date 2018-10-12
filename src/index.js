@@ -10,14 +10,14 @@
 
 const mixin = {
     methods: {
-        $smoothReflow: function(options) {
+        $smoothReflow(options) {
             let _registerElement = registerElement.bind(this)
             if (Array.isArray(options))
                 options.forEach(_registerElement)
             else
                 _registerElement(options)
         },
-        $unsmoothReflow: function(options) {
+        $unsmoothReflow(options) {
             let _unregisterElement = unregisterElement.bind(this)
             if (Array.isArray(options))
                 options.forEach(_unregisterElement)
@@ -25,7 +25,7 @@ const mixin = {
                 _unregisterElement(options)
         },
     },
-    beforeMount: function() {
+    beforeMount() {
         this._smoothElements = []
 
         this._endListener = event => {
@@ -34,13 +34,13 @@ const mixin = {
             }
         }
     },
-    mounted: function() {
+    mounted() {
         this.$el.addEventListener('transitionend', this._endListener, { passive: true })
     },
-    destroyed: function() {
+    destroyed() {
         this.$el.removeEventListener('transitionend', this._endListener, { passive: true })
     },
-    beforeUpdate: function() {
+    beforeUpdate() {
         // The component $el can be null during mounted, if it's hidden by a falsy v-if
         // Duplicate event listeners are ignored, so it's safe to add this listener multiple times.
         this.$el.addEventListener('transitionend', this._endListener, { passive: true })
@@ -53,7 +53,7 @@ const mixin = {
             smoothEl.setBeforeValues()
         }
     },
-    updated: function() {
+    updated() {
         this.$nextTick(() => {
             // Retrieve component element on demand
             // It could have been hidden by v-if/v-show
