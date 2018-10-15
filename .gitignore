@@ -1,4 +1,5 @@
 dist/
+dist-report/
 node_modules/
 browsertests/
 *.map

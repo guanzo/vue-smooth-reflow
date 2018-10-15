@@ -12,6 +12,15 @@ Common use cases are:
 
 Note that this library has no overlap with Vue's built in `<transition>` components.
 
+## Table of Contents
+
+* [Demo](#demo)
+* [Installation](#installation)
+* [Usage](#usage)
+* [API](#api)
+* [Smooth Component](#smooth-component)
+* [Examples](#examples)
+
 ## Demo
 
 https://vuesmoothreflow.guanzo.io
@@ -42,8 +51,10 @@ Module:
 </template>
 
 <script>
-import smoothReflow from 'vue-smooth-reflow';
+// The component's root el will now transition to
+// accomodate new values of 'this.children'
 
+import smoothReflow from 'vue-smooth-reflow'
 export default {
     mixins: [smoothReflow],
     data() {
@@ -53,9 +64,6 @@ export default {
     },
     mounted(){
         this.$smoothReflow()
-
-        // The component's root el will now transition to
-        // accomodate new values of 'this.children'
     },
 }
 </script>
@@ -83,7 +91,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
     An element reference, or a CSS selector string. The resolved element will transition reflows on registered properties. This element is referred to as the "smooth element".
 
-    Use a selector string if the element is not rendered initially. If the selector returns multiple elements, the first one will be used.
+    Use a selector string if the element is not rendered initially, like if it's hidden with `v-if`. If the selector returns multiple elements, the first one will be used.
 
 * `property`
 
@@ -123,7 +131,9 @@ Enables smooth reflow on an element. This method is available on the component i
 
     The default value will become `height .5s, transform .5s`.
 
-    If the smooth element has transitions on other properties like `background-color`, they will be preserved. Any transitions defined as an inline style on the smooth element will be ignored and erased, so be careful.
+    If the smooth element has transitions on other properties like `background-color`, they will be preserved.
+
+    NOTE: Any transitions defined as an inline style on the smooth element will be ignored and erased.
 
 * `transitionEvent`
 
@@ -143,7 +153,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
     Configures the smooth element to react to `transitionend` events that are emitted by other elements. You must opt-in for this behavior, there is no default.
 
-    `selector` and `propertyName` serve as filters so that the smooth element doesn't cause reflows for every `transitionend` event that it catches, which kills performance. When the smooth element receives a `transitionend` event, it will check if `selector` matches `event.target`, and/or if `propertyName` matches `event.propertyName`. You can specify one or the other, or both. All checks must pass in order for the smooth element to proceed with the smooth reflow.
+    `selector` and `propertyName` serve as filters so that the smooth element doesn't cause reflows for every `transitionend` event that it catches, which impacts performance. When the smooth element receives a `transitionend` event, it will check if `selector` matches `event.target`, and/or if `propertyName` matches `event.propertyName`. You can specify one or the other, or both. All checks must pass in order for the smooth element to proceed with the smooth reflow.
 
     A common use case is to delay the smooth reflow until after a child element has been transitioned out with `v-if/v-show` and `<transition>`.
 
@@ -185,10 +195,72 @@ Disables smooth reflow on an element. This method is available on the component 
 
 Registered elements that have the same `el` as the passed in options will be unregistered. This usually isn't necessary, but is useful if you want to disable the behavior while the component is still alive.
 
+## Smooth Component
+
+Importing VSR into every component that needs it violates DRY. Instead, you can create one component that imports VSR then use it as needed. This should satisfy 90% of use cases.
+
+Example:
+
+```js
+// SmoothReflow.vue
+<template>
+    <component :is="tag">
+        <slot/>
+    </component>
+</template>
+
+<script>
+import smoothReflow from 'vue-smooth-reflow'
+export default {
+    name: 'SmoothReflow',
+    props: {
+        tag: {
+            type: String,
+            default: 'div'
+        },
+        options: Object,
+    },
+    mixins: [smoothReflow],
+    mounted () {
+        this.$smoothReflow(this.options)
+    }
+}
+</script>
+
+```
+
+Globally register this component for convenience.
+
+```js
+// main.js
+import SmoothReflow from './components/SmoothReflow'
+
+Vue.component('SmoothReflow', SmoothReflow)
+```
+
+Update your existing components that import VSR. This is a modification of the first [usage example](#usage). Goodbye boilerplate!
+
+```diff
+<template>
+    <SmoothReflow>
+        <div v-for="n in children"/>
+    </SmoothReflow>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            children: '<Dynamic value>'
+        }
+    }
+}
+</script>
+```
+
+You may run into reactivity issues when using the `SmoothComponent`. VSR hooks into the component's `beforeUpdate` and `updated` lifecycle methods, so if those are never called, then the transition won't occur.
 
 ## Examples:
-
-Various configurations
 
 ```javascript
 mounted(){
@@ -248,7 +320,3 @@ mounted(){
 * The `hideOverflow` option now defaults to `true`.
 
 * The way child transitions are handled is completely different.
-
-### Browser compatibility
-
-Due to various browser quirks, I cannot guarantee that vue-smooth-reflow will work as intended on every browser.
