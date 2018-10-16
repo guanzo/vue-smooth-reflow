@@ -85,7 +85,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
 * `el`
 
-    Type: `Element` | `String`
+    Type: `Element | String`
 
     Default: The components root element.
 
@@ -95,7 +95,7 @@ Enables smooth reflow on an element. This method is available on the component i
 
 * `property`
 
-    Type: `String` | `Array`
+    Type: `String | Array`
 
     Default: `height`
 
@@ -213,6 +213,7 @@ Example:
 import smoothReflow from 'vue-smooth-reflow'
 export default {
     name: 'SmoothReflow',
+    mixins: [smoothReflow],
     props: {
         tag: {
             type: String,
@@ -220,7 +221,6 @@ export default {
         },
         options: Object,
     },
-    mixins: [smoothReflow],
     mounted () {
         this.$smoothReflow(this.options)
     }
@@ -248,12 +248,17 @@ Update your existing components that import VSR. This is a modification of the f
 </template>
 
 <script>
+-import smoothReflow from 'vue-smooth-reflow'
 export default {
+-   mixins: [smoothReflow],
     data() {
         return {
             children: '<Dynamic value>'
         }
-    }
+    },
+-    mounted(){
+-        this.$smoothReflow()
+-    },
 }
 </script>
 ```

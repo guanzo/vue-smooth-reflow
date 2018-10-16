@@ -11,14 +11,14 @@
 const mixin = {
     methods: {
         $smoothReflow(options) {
-            let _registerElement = registerElement.bind(this)
+            const _registerElement = registerElement.bind(this)
             if (Array.isArray(options))
                 options.forEach(_registerElement)
             else
                 _registerElement(options)
         },
         $unsmoothReflow(options) {
-            let _unregisterElement = unregisterElement.bind(this)
+            const _unregisterElement = unregisterElement.bind(this)
             if (Array.isArray(options))
                 options.forEach(_unregisterElement)
             else
@@ -29,7 +29,7 @@ const mixin = {
         this._smoothElements = []
 
         this._endListener = event => {
-            for (let smoothEl of this._smoothElements) {
+            for (const smoothEl of this._smoothElements) {
                 smoothEl.endListener(event)
             }
         }
@@ -47,8 +47,8 @@ const mixin = {
         flushRemoved(this)
         // Retrieve component element on demand
         // It could have been hidden by v-if/v-show
-        for (let smoothEl of this._smoothElements) {
-            let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
+        for (const smoothEl of this._smoothElements) {
+            const $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
             smoothEl.setSmoothElement($smoothEl)
             smoothEl.setBeforeValues()
         }
@@ -57,8 +57,8 @@ const mixin = {
         this.$nextTick(() => {
             // Retrieve component element on demand
             // It could have been hidden by v-if/v-show
-            for (let smoothEl of this._smoothElements) {
-                let $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
+            for (const smoothEl of this._smoothElements) {
+                const $smoothEl = findRegisteredEl(this.$el, smoothEl.options.el)
                 smoothEl.setSmoothElement($smoothEl)
                 smoothEl.doSmoothReflow()
             }
@@ -70,7 +70,7 @@ const mixin = {
 function flushRemoved(vm) {
     let i = vm._smoothElements.length
     while (i--) {
-        let smoothEl = vm._smoothElements[i]
+        const smoothEl = vm._smoothElements[i]
         if (smoothEl.isRemoved) {
             smoothEl.stopTransition()
             vm._smoothElements.splice(i, 1)
@@ -84,10 +84,10 @@ function registerElement(option = {}) {
 }
 
 // 'this' is vue component
-// If no 'el' was pass during registration, then we unregister the root element.
+// If no 'el' was pass during registration, then we register the root element.
 function unregisterElement(option = defaultOptions()) {
-    let root = this.$el
-    let index = this._smoothElements.findIndex(smoothEl => {
+    const root = this.$el
+    const index = this._smoothElements.findIndex(smoothEl => {
         return findRegisteredEl(root, smoothEl.options.el) === findRegisteredEl(root, option.el)
     })
     if (index === -1) {
@@ -142,15 +142,15 @@ const defaultOptions = () => {
 
 class SmoothElement {
     constructor(userOptions) {
-        let options = defaultOptions()
+        const options = defaultOptions()
         Object.assign(options, userOptions)
 
-        let properties = this.parsePropertyOption(options.property)
+        const properties = this.parsePropertyOption(options.property)
         if (!options.transition) {
             options.transition = properties.map(p => `${p} .5s`).join(',')
         }
 
-        let internal = {
+        const internal = {
             // Resolved Element from el
             $smoothEl: null,
             // Resolved properties from property
@@ -179,16 +179,16 @@ class SmoothElement {
         return []
     } // Save the DOM properties of the $smoothEl before the data update
     setBeforeValues() {
-        let { $smoothEl } = this
+        const { $smoothEl } = this
         this.beforeRect = {}
 
         if (!$smoothEl){
             return
         }
 
-        let computedStyle = window.getComputedStyle($smoothEl)
+        const computedStyle = window.getComputedStyle($smoothEl)
         // getComputedStyle() can return null in iframe
-        let { transition, overflowX, overflowY } = computedStyle || {}
+        const { transition, overflowX, overflowY } = computedStyle || {}
         this.computedTransition = transition
         // Save overflow values now
         this.overflowX = overflowX
@@ -203,13 +203,13 @@ class SmoothElement {
         }
     }
     didValuesChange(beforeRect, afterRect) {
-        let b = beforeRect
-        let a = afterRect
+        const b = beforeRect
+        const a = afterRect
         // There's nothing to transition from.
         if (Object.keys(beforeRect).length === 0) {
             return false
         }
-        for (let prop of this.properties) {
+        for (const prop of this.properties) {
             if (prop === 'transform' &&
                     (b['top'] !== a['top'] || b['left'] !== a['left'])) {
                 return true
@@ -220,7 +220,7 @@ class SmoothElement {
         return false
     }
     doSmoothReflow(event = 'data update') {
-        let { $smoothEl } = this
+        const { $smoothEl } = this
         if (!$smoothEl) {
             this.debug("Could not find registered el to perform doSmoothReflow.")
             this.transitionTo(STATES.INACTIVE)
@@ -234,14 +234,14 @@ class SmoothElement {
         // for example if smoothEl is inside a <template></template>
         // https://github.com/guanzo/vue-smooth-reflow/issues/1
         //$smoothEl.addEventListener('transitionend', this.endListener, { passive: true })
-        let { beforeRect, properties, options, overflowX, overflowY, debug } = this
+        const { beforeRect, properties, options, overflowX, overflowY, debug } = this
 
         this.transitionTo(STATES.ACTIVE)
 
-        let triggeredBy = (typeof event === 'string') ? event : event.target
+        const triggeredBy = (typeof event === 'string') ? event : event.target
         debug(`doSmoothReflow triggered by:`, triggeredBy)
 
-        let afterRect = getBoundingClientRect($smoothEl)
+        const afterRect = getBoundingClientRect($smoothEl)
         if (!this.didValuesChange(beforeRect, afterRect)) {
             debug(`Property values did not change.`)
             this.transitionTo(STATES.INACTIVE)
@@ -252,9 +252,9 @@ class SmoothElement {
 
         this.saveOverflowValues($smoothEl, overflowX, overflowY)
 
-        for (let prop of properties) {
+        for (const prop of properties) {
             if (prop === 'transform') {
-                let invertLeft = beforeRect['left'] - afterRect['left']
+                const invertLeft = beforeRect['left'] - afterRect['left']
                 var invertTop = beforeRect['top'] - afterRect['top']
                 $smoothEl.style.transform = `translate(${invertLeft}px, ${invertTop}px)`
             } else {
@@ -266,7 +266,7 @@ class SmoothElement {
 
         $smoothEl.style.transition = [this.computedTransition, options.transition].filter(d=>d).join(',')
 
-        for (let prop of properties) {
+        for (const prop of properties) {
             if (prop === 'transform') {
                 $smoothEl.style.transform = ''
             } else {
@@ -277,8 +277,8 @@ class SmoothElement {
         // Transition is now started.
     }
     endListener(event) {
-        let { $smoothEl, properties } = this
-        let $targetEl = event.target
+        const { $smoothEl, properties } = this
+        const $targetEl = event.target
         // Transition on smooth element finished
         if ($smoothEl === $targetEl) {
             // The transition property is one that was registered
@@ -296,7 +296,7 @@ class SmoothElement {
         }
     }
     hasRegisteredEventEmitter() {
-        let { transitionEvent } = this.options
+        const { transitionEvent } = this.options
         return transitionEvent !== null && Object.keys(transitionEvent).length > 0
     }
     // Check if we should perform doSmoothReflow() after a transitionend event.
@@ -304,12 +304,12 @@ class SmoothElement {
         if (!this.hasRegisteredEventEmitter()) {
             return false
         }
-        let $targetEl = event.target
-        let { selector, propertyName } = this.options.transitionEvent
+        const $targetEl = event.target
+        const { selector, propertyName } = this.options.transitionEvent
         if (propertyName != null && propertyName !== event.propertyName) {
             return false
         }
-        // coerce type to also check for undefined.
+        // '!= null' coerces the type to also check for undefined.
         if (selector != null && !$targetEl.matches(selector)) {
             return false
         }
@@ -321,8 +321,8 @@ class SmoothElement {
             // Checks if $targetEl IS or WAS a descendent of $smoothEl.
             let smoothElContainsTarget = false
             // composedPath is missing in ie/edge of course.
-            let path = event.composedPath ? event.composedPath() : []
-            for (let el of path) {
+            const path = event.composedPath ? event.composedPath() : []
+            for (const el of path) {
                 if ($smoothEl === el) {
                     smoothElContainsTarget = true
                     break
@@ -345,7 +345,7 @@ class SmoothElement {
         }
     }
     restoreOverflowValues($smoothEl) {
-        let { options, overflowX, overflowY } = this
+        const { options, overflowX, overflowY } = this
         if (options.hideOverflow) {
             // Restore original overflow properties
             $smoothEl.style.overflowX = overflowX
@@ -353,9 +353,9 @@ class SmoothElement {
         }
     }
     stopTransition() {
-        let { $smoothEl, properties } = this
+        const { $smoothEl, properties } = this
         // Change prop back to auto
-        for (let prop of properties) {
+        for (const prop of properties) {
             $smoothEl.style[prop] = null
         }
 
@@ -372,7 +372,7 @@ class SmoothElement {
         if (!this.options.debug) {
             return
         }
-        let args = [`VSR_DEBUG:`].concat(Array.from(arguments))
+        const args = [`VSR_DEBUG:`].concat(Array.from(arguments))
         console.log.apply(null, args)
     }
 }
@@ -386,5 +386,6 @@ const getBoundingClientRect = $el => {
     $el.style.overflow = null
     return { top, right, bottom, left, width, height, x, y }
 }
+
 
 export default mixin

@@ -1,6 +1,7 @@
 /* eslint-disable */
 const path = require('path')
 const webpack = require('webpack')
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
 
 const config = {
     entry: './src/index.js',
@@ -21,13 +22,27 @@ const config = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['@babel/preset-env'],
+                        presets: [['@babel/preset-env', {
+                            targets: {
+                                browsers: ['last 2 versions', 'safari >= 9', '> 1%', 'IE 11']
+                            },
+                            useBuiltIns: 'usage'
+                        }]],
                         babelrc: false
                     }
                 }
             }
         ]
     },
+    plugins: [
+        new BundleAnalyzerPlugin({
+            analyzerMode: 'static',
+            generateStatsFile: true,
+            openAnalyzer: false,
+            reportFilename: '../dist-report/webpack-report.html',
+            statsFilename: '../dist-report/webpack-stats.json',
+        })
+    ]
 }
 
 module.exports = config
