@@ -21,7 +21,12 @@ const config = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['@babel/preset-env'],
+                        presets: [['@babel/preset-env', {
+                            targets: {
+                                browsers: ['last 2 versions', 'safari >= 9', '> 1%', 'IE 11']       
+                            },
+                            useBuiltIns: 'usage'
+                        }]],
                         babelrc: false
                     }
                 }
