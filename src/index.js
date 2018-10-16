@@ -8,6 +8,10 @@
  * 5. If the event matches the user's event filters, Go back to #1
  */
 
+if (!Element.prototype.matches) {
+    Element.prototype.matches = Element.prototype.msMatchesSelector;
+}
+
 const mixin = {
     methods: {
         $smoothReflow(options) {
