@@ -25,7 +25,7 @@ const config = {
                             targets: {
                                 browsers: ['last 2 versions', 'safari >= 9', '> 1%', 'IE 11']       
                             },
-                            forceAllTransforms: true
+                            useBuiltIns: 'usage'
                         }]],
                         babelrc: false
                     }
