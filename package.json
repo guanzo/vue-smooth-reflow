@@ -1,6 +1,6 @@
 {
   "name": "vue-smooth-reflow",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Transition reflow in response to vue data changes.",
   "scripts": {
     "build": "webpack",
@@ -21,6 +21,7 @@
     "webpack-bundle-analyzer": "^3.0.2",
     "webpack-cli": "^2.1.4"
   },
+  "types": "types/index.d.ts",
   "module": "dist/vue-smooth-reflow.min.js",
   "main": "dist/vue-smooth-reflow.min.js",
   "unpkg": "dist/vue-smooth-reflow.min.js",
