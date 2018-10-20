@@ -1,0 +1,10 @@
+.idea
+dist-report
+tsconfig.json
+tslint.json
+webpack.config.js
+src/**/*
+!src/interfaces/**/*.d.ts
+!src/index.d.ts
+!src/vue.d.ts
+!src/vue-smooth-reflow.d.ts

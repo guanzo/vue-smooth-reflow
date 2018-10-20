@@ -4,3 +4,6 @@ node_modules/
 browsertests/
 *.map
 .idea
+.DS_Store
+src/**/*.d.ts
+!src/vue.d.ts
