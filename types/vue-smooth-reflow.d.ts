@@ -1,3 +1,6 @@
+import Vue from "vue"
+import { ComponentOptions } from "vue/types/options"
+
 export interface TransitionEvent {
   selector?: string;
   propertyName?: string;
@@ -11,16 +14,6 @@ export interface Options {
   hideOverflow?: boolean;
 }
 
-declare const mixin: {
-  methods: {
-    $smoothReflow(options?: Options): void;
-    $unsmoothReflow(options?: Options): void;
-  };
-  beforeMount(): void;
-  mounted(): void;
-  destroyed(): void;
-  beforeUpdate(): void;
-  updated(): void;
-};
+declare const mixin: ComponentOptions<Vue>;
 
 export default mixin;
