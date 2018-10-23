@@ -8,7 +8,7 @@
  * 5. If the event matches the user's event filters, Go back to #1
  */
 
-if (!Element.prototype.matches) {
+if (typeof Element !== 'undefined' && Element.prototype && !Element.prototype.matches) {
     Element.prototype.matches = Element.prototype.msMatchesSelector;
 }
 
