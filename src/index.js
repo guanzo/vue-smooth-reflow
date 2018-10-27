@@ -8,10 +8,6 @@
  * 5. If the event matches the user's event filters, Go back to #1
  */
 
-if (typeof Element !== 'undefined' && Element.prototype && !Element.prototype.matches) {
-    Element.prototype.matches = Element.prototype.msMatchesSelector;
-}
-
 const mixin = {
     methods: {
         $smoothReflow(options) {
@@ -389,6 +385,22 @@ const getBoundingClientRect = $el => {
     const { top, right, bottom, left, width, height, x, y } = $el.getBoundingClientRect()
     $el.style.overflow = null
     return { top, right, bottom, left, width, height, x, y }
+}
+
+// Element.matches polyfill: https://developer.mozilla.org/en-US/docs/Web/API/Element/matches#Polyfill
+if (typeof Element !== 'undefined' && Element.prototype && !Element.prototype.matches) {
+    Element.prototype.matches =
+        Element.prototype.matchesSelector ||
+        Element.prototype.mozMatchesSelector ||
+        Element.prototype.msMatchesSelector ||
+        Element.prototype.oMatchesSelector ||
+        Element.prototype.webkitMatchesSelector ||
+        function(s) {
+            var matches = (this.document || this.ownerDocument).querySelectorAll(s),
+                i = matches.length;
+            while (--i >= 0 && matches.item(i) !== this) {}
+            return i > -1;
+        };
 }
 
 
