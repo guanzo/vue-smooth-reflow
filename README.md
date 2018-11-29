@@ -325,3 +325,10 @@ mounted(){
 * The `hideOverflow` option now defaults to `true`.
 
 * The way child transitions are handled is completely different.
+
+
+## License
+
+[MIT](http://opensource.org/licenses/MIT)
+
+Copyright (c) 2013-present, Eric Guan

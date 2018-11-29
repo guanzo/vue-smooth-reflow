@@ -387,6 +387,7 @@ const getBoundingClientRect = $el => {
     return { top, right, bottom, left, width, height, x, y }
 }
 
+// Remember: this code shouldn't run during SSR.
 // Element.matches polyfill: https://developer.mozilla.org/en-US/docs/Web/API/Element/matches#Polyfill
 if (typeof Element !== 'undefined' && Element.prototype && !Element.prototype.matches) {
     Element.prototype.matches =
@@ -402,6 +403,5 @@ if (typeof Element !== 'undefined' && Element.prototype && !Element.prototype.ma
             return i > -1;
         };
 }
-
 
 export default mixin
