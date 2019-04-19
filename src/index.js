@@ -242,6 +242,11 @@ class SmoothElement {
         debug(`doSmoothReflow triggered by:`, triggeredBy)
 
         const afterRect = getBoundingClientRect($smoothEl)
+
+        if (options.beforeTransition) {
+            this.options.beforeTransition(options, beforeRect, afterRect);
+        }
+
         if (!this.didValuesChange(beforeRect, afterRect)) {
             debug(`Property values did not change.`)
             this.transitionTo(STATES.INACTIVE)
